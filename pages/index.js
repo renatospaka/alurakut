@@ -48,11 +48,7 @@ function ProfileRelationBox(props) {
 
 export default function Home() {
   const gitHubUser = "renatospaka";
-  const [comunidades, setComunidades] = React.useState([{
-    id: "podeserqualquernumeroaleatorioapenasparaconstar",
-    title: "Eu odeio acordar cedo",
-    image: "https://alurakut.vercel.app/capa-comunidade-01.jpg"   
-  }])
+  const [communities, setCommunities] = React.useState([])
 
   const pessoasFavoritas = [
     "omariosouto",
@@ -75,6 +71,30 @@ export default function Home() {
     })
     .then(function(respostaCompleta) {
       setFollowers(respostaCompleta);
+    })
+
+    const token = "813fda4696b6760b9da45627bea408"
+    const query = `query {
+                          allCommunities {
+                            id
+                            title
+                            imageUrl
+                            creatorSlug
+                          }
+                        }`
+    fetch("https://graphql.datocms.com/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({"query": query})
+    })
+    .then(response => response.json())
+    .then((response) => {
+      const theseCommunities = response.data.allCommunities
+      setCommunities(theseCommunities)
     })
   }, []);
 
@@ -99,18 +119,25 @@ export default function Home() {
             <form onSubmit={function handleCreateCommunity(e) {
               e.preventDefault();
               const dadosDoForm = new FormData(e.target);
-              console.log("Campo: ", dadosDoForm.get("title"))
-              console.log("Campo: ", dadosDoForm.get("image"))
-              const comunidade = {
-                id: new Date().toISOString(),
+              const community = {
                 title: dadosDoForm.get("title"),
-                image: dadosDoForm.get("image"),
+                imageUrl: dadosDoForm.get("image"),
+                creatorSlug: gitHubUser,
               }
-              // comunidades.push("Alura Stars");
-              const comunidadesAtualizadas = [...comunidades, comunidade] 
-              setComunidades(comunidadesAtualizadas);
 
-              console.log(comunidades)
+              fetch("/api/communities", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(community),
+              })
+              .then(async (response) => {
+                const resp = await response.json();
+                const community = resp.newRecord;
+                const updatedCommunities = [...communities, community];
+                setCommunities(updatedCommunities);
+              })
             }}>
               <div>
                 <input
@@ -137,14 +164,14 @@ export default function Home() {
           <ProfileRelationBox title="Seguidores" itens={followers} />
           <ProfileRelationBoxWrapper>
             <h2 className="smallTitle">
-              Comunidades ({comunidades.length})
+              Comunidades ({communities.length})
             </h2>
             <ul>
-              {comunidades.map((itemAtual) => {
+              {communities.map((itemAtual) => {
                 return (
                   <li key={itemAtual.id}>
-                    <a href={`/users/${itemAtual.title}`} key={itemAtual.title}>
-                      <img src={itemAtual.image} />
+                    <a href={`/users/${itemAtual.id}`}>
+                      <img src={itemAtual.imageUrl} />
                       <span>{itemAtual.title}</span>
                     </a>
                   </li>
@@ -154,7 +181,7 @@ export default function Home() {
           </ProfileRelationBoxWrapper>
           <ProfileRelationBoxWrapper>
             <h2 className="smallTitle">
-              Pessoas da comunidades ({pessoasFavoritas.length})
+              Pessoas da communities ({pessoasFavoritas.length})
             </h2>
             <ul>
               {pessoasFavoritas.map((itemAtual) => {
